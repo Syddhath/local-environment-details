@@ -1,0 +1,105 @@
+# PART 1 - This part is for people downloading the configured ubuntu 18.04 LTS LAMP stack box.
+Update VirtualBox by going to the website and redownloading the .exe. Currently this box was made with version 6.1.6. Also download the VB Extension Pack of the same version number. Both are at https://www.virtualbox.org/wiki/Downloads.
+
+# We'll be using Vagrant Cloud for the storage destination where my box is going to be. The details about the box will be on GitHub at https://github.com/CP3402-2020-team10/local-environment-details. Everyone will download the box onto their computers. I have no idea how Macs are going to handle all this but we'll cross that bridge when we come to it.
+# I have done this in not the best way. I used the full Ubuntu 18.04 LTS image instaed of a minimal one. Basically the full one has extra stuff that we might not need but it was the simplest to start with. So the box I've configured has blown out to 1GB. 
+# So everyone will need to download it and that will take a while.
+# Antivirus might stop vagrant being run in certain places.
+I'd recommend making a folder called Vagrant on yout PCs and under your Documents or something where the box can be found.
+Get a Vagrant Cloud account. 
+Tell me what your username is so I can give you access.
+Go to your CLI or terminal and enter 'vagrant login' then enter your username and password for the Vagrant account you just made.
+Then enter 'vagrant init Kez2000/cms-local' in the command line and make sure you're under the directory where you want the Vagrant box to be.
+At this point it's a good idea to copy the content of the vagrantfile template on the local-environment-details repo under the organisation for this project and paste it into the Vagrantfile, then save the changes. You can open the Vagrantfile with a text editor like Notepad.
+Then enter 'vagrant up'
+
+
+# PART 2 - The following part is more for my own record and for people setting up the remote or new local environments if they need to.
+For local envrionments update VirtualBox by going to the website and redownloading the .exe. Currently this box was made with version 6.1.6. Also download the VB Extension Pack of the same version number. Both are at https://www.virtualbox.org/wiki/Downloads.
+# One command per line
+
+sudo apt-add-repository ppa:ondrej/php && sudo apt-add-repository ppa:ondrej/apache2
+sudo apt-get update
+sudo apt-get install apache2 -y
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
+# This next find command will find exactly where the mysql file you just downloaded is on the ubuntu box. 
+sudo find / -name mysql-apt-config_0.8.15-1_all.deb
+# Copy the full result of the mysql file destination and paste it in where the x's are. It might be something like "/home/vagrant/mysql-apt-config_0.8.15-1_all.deb".
+# Select the strong SHA256 password hashing once you've entered the next command. For the MySQL Server & Cluster mysql-8.0 should be currently selected. 
+# If it isn't press enter and select "mysql-8.0" from the available options and press enter. Leave the other configuration options as they are and press enter on "OK".
+sudo dpkg -i x/x/mysql-apt-config_0.8.15-1_all.deb
+sudo apt-get update
+# I have already configured all of the passwords for MySQL so you won't need to do this unless you're setting up remotes. But you will need to enter a root pssword and remember it. 
+# Make it something you won't use again and not a simple one; this one will most likley be on the Internet so attackers will be watching.
+sudo apt-get install mysql-server -y
+
+
+# I have already configured all MySQL passwords. Again use passwords that you won't use again but are also not simple.
+mysql -u root -p
+CREATE DATABASE wordpress DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+CREATE USER 'wordpressuser'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpressuser'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+
+# Keep this next command on one line.
+sudo apt-get install php7.4 php7.4-bcmath php7.4-bz2 php7.4-cgi php7.4-cli php7.4-common php7.4-curl php7.4-enchant php7.4-fpm php7.4-gd php7.4-igbinary php7.4-imagick php7.4-imap php7.4-imap php7.4-intl php7.4-json php7.4-ldap php7.4-mbstring php7.4-memcache php7.4-mongodb php7.4-mysql php7.4-odbc php7.4-pgsql php7.4-pspell php7.4-redis php7.4-sqlite3 php7.4-tidy php7.4-xml php7.4-xmlrpc php7.4-zip libapache2-mod-php7.4 -y
+
+sudo systemctl restart apache2
+
+sudo apt install curl -y
+curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+
+sudo apt-get update
+# Keep this next command on one line.
+sudo apt-get install git-core zlib1g-dev build-essential libssl-dev libreadline-dev libyaml-dev libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev libcurl4-openssl-dev software-properties-common libffi-dev nodejs yarn -y
+
+sudo apt-get install libgdbm-dev libncurses5-dev automake libtool bison libffi-dev -y
+
+# Some errors might happen with the next command. It will suggest 2 commands, the first will be something like "command curl -sSL https://rvm.io/mpapis.asc | gpg --import -", the second will be soemthing like "command curl -sSL https://rvm.io/pkuczynski.asc | gpg --import -". Enter both commands, one per line, and then retry the command below.
+curl -sSL https://get.rvm.io | bash -s stable
+source ~/.rvm/scripts/rvm
+# It might tell you to run "rvm reload" around here, if it does just run the command and run the below command if it didn't complete the first time. From my understanding new boxes don't have require the reload command.
+rvm install 2.7.1
+rvm use 2.7.1 --default
+# Make sure ruby 2.7.1 is listed next, it might have some extra characters after the major version numbers, but don't mind them. The ruby version may be different as new versions are released but 2.7.1 is the latest stable version.
+ruby -v
+
+sudo nano /etc/apache2/sites-available/000-default.conf
+Add:<Directory /var/www/wordpress/>
+        AllowOverride All
+    </Directory>
+to a new line in the open file.
+Then use CTRL + O to write out the file and press enter. Then use CTRL + X to exit the editor.
+
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+
+cd /tmp
+curl -O https://wordpress.org/latest.tar.gz
+tar xzvf latest.tar.gz
+touch /tmp/wordpress/.htaccess
+cp /tmp/wordpress/wp-config-sample.php /tmp/wordpress/wp-config.php
+mkdir /tmp/wordpress/wp-content/upgrade
+sudo cp -a /tmp/wordpress/. /var/www/html
+
+sudo chown -R www-data:www-data /var/www/html
+sudo find /var/www/html/ -type d -exec chmod 750 {} \;
+sudo find /var/www/html/ -type f -exec chmod 640 {} \;
+
+curl -s https://api.wordpress.org/secret-key/1.1/salt/
+
+sudo nano /var/www/html/wp-config.php
+Change 'DB_NAME' to 'wordpress'
+Change 'DB_USER' to 'wordpressuser'
+# Make the password whatever you set it when you made the user in mysql.
+Change 'DB_PASSWORD' to 'db_user_password'
+Add "define('FS_METHOD', 'direct');" below the 'DB_COLLATE' line
+Save the changes by pressing CTRL+O and Enter, then press CTRL+X
+Then copy the eight define results that came back after the curl command and paste them into the file you just closed. 
+Replace the 8 define lines where the WordPress key and salts are, below the DB details you changed earlier. 
+Then save the changes again with CTRL+O and Enter, and CTRL+X
+
+Then type the IP address or hostname of the server into the browser.
