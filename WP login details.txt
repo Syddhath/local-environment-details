@@ -1,0 +1,5 @@
+# admin user settings
+admin:
+  user: localcmsadmin
+  password: G!8aPd8yHUIWsIo6g2
+  email: jesse.kerridgebyrne@my.jcu.edu.au
